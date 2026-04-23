@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pottery Tag Library</title>
+  <meta name="theme-color" content="#9c5c2b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Pottery Tags">
+  <link rel="manifest" href="app.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Version 1 MVP</p>
+        <h1>Pottery Tag Library</h1>
+        <p class="hero-copy">
+          Save fired results, choose tags from a master list, and find glaze examples fast without typo chaos.
+        </p>
+      </div>
+      <div class="hero-card">
+        <p class="hero-stat-label">Saved pieces</p>
+        <p class="hero-stat" id="entryCount">0</p>
+        <p class="hero-subtle" id="storageModeLabel">Everything in this MVP is stored locally in your browser.</p>
+      </div>
+    </header>
+
+    <section class="panel sync-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Phone Ready</p>
+          <h2>Cloud Sync</h2>
+        </div>
+        <p class="section-copy">Use local mode now, or connect Supabase so your pottery library follows you onto your iPhone.</p>
+      </div>
+
+      <div class="sync-grid">
+        <div class="sync-card">
+          <p class="sync-label">Current mode</p>
+          <p class="sync-value" id="syncModeBadge">Local only</p>
+          <p class="sync-copy" id="syncStatusText">Set up cloud config to sync tags and pottery photos across devices.</p>
+        </div>
+
+        <form id="authForm" class="stack auth-form">
+          <label class="field">
+            <span>Email for sign-in link</span>
+            <div class="inline-field">
+              <input id="emailInput" name="email" type="email" placeholder="you@example.com">
+              <button type="submit" class="button">Email me a sign-in link</button>
+            </div>
+          </label>
+          <div class="auth-actions">
+            <button id="signOutButton" type="button" class="button button-secondary" hidden>Sign out</button>
+            <button id="syncNowButton" type="button" class="button button-secondary" hidden>Sync now</button>
+          </div>
+          <p class="auth-copy" id="authStatusText">Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.</p>
+        </form>
+      </div>
+    </section>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Step 1</p>
+            <h2>Master Tags</h2>
+          </div>
+          <p class="section-copy">Create tags once, then select them when you add a pottery photo.</p>
+        </div>
+
+        <form id="tagForm" class="stack">
+          <label class="field">
+            <span>New tag</span>
+            <div class="inline-field">
+              <input id="tagNameInput" name="tagName" type="text" maxlength="40" placeholder="Example: cone 6">
+              <button type="submit" class="button">Add tag</button>
+            </div>
+          </label>
+        </form>
+
+        <div id="tagList" class="tag-cloud empty-state-inline"></div>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Step 2</p>
+            <h2>Add Pottery Piece</h2>
+          </div>
+          <p class="section-copy">Upload a photo, add notes, and choose matching tags from your master list.</p>
+        </div>
+
+        <form id="entryForm" class="stack">
+          <label class="field">
+            <span>Piece name</span>
+            <input id="titleInput" name="title" type="text" maxlength="80" placeholder="Example: Mug #12">
+          </label>
+
+          <label class="field">
+            <span>Photo</span>
+            <input id="imageInput" name="image" type="file" accept="image/*" capture="environment" required>
+          </label>
+
+          <label class="field">
+            <span>Notes</span>
+            <textarea id="notesInput" name="notes" rows="4" maxlength="500" placeholder="Glaze combo, clay body, kiln notes, firing atmosphere..."></textarea>
+          </label>
+
+          <fieldset class="field">
+            <legend>Select tags</legend>
+            <div id="entryTagPicker" class="tag-picker empty-state-inline"></div>
+          </fieldset>
+
+          <button type="submit" class="button button-strong">Save pottery piece</button>
+        </form>
+      </section>
+
+      <section class="panel panel-wide">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Step 3</p>
+            <h2>Find Fired Results</h2>
+          </div>
+          <p class="section-copy">Combine include and exclude tags, then choose how strict the include match should be.</p>
+        </div>
+
+        <div class="search-grid">
+          <fieldset class="field">
+            <legend>Include tags</legend>
+            <div id="includeTagPicker" class="tag-picker empty-state-inline"></div>
+          </fieldset>
+
+          <fieldset class="field">
+            <legend>Exclude tags</legend>
+            <div id="excludeTagPicker" class="tag-picker empty-state-inline"></div>
+          </fieldset>
+        </div>
+
+        <div class="search-controls">
+          <label class="toggle-card">
+            <input type="radio" name="matchMode" value="all" checked>
+            <span>Match all included tags</span>
+          </label>
+          <label class="toggle-card">
+            <input type="radio" name="matchMode" value="any">
+            <span>Match any included tag</span>
+          </label>
+          <button id="clearFiltersButton" type="button" class="button button-secondary">Clear filters</button>
+        </div>
+
+        <div class="results-header">
+          <h3>Results</h3>
+          <p id="resultsSummary">0 pieces shown</p>
+        </div>
+
+        <div id="resultsGrid" class="results-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="entryCardTemplate">
+    <article class="entry-card">
+      <img class="entry-image" alt="">
+      <div class="entry-content">
+        <div class="entry-topline">
+          <h4 class="entry-title"></h4>
+          <button type="button" class="text-button delete-entry">Delete</button>
+        </div>
+        <p class="entry-date"></p>
+        <p class="entry-notes"></p>
+        <div class="entry-tags"></div>
+      </div>
+    </article>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
