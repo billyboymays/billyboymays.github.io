@@ -16,22 +16,22 @@ This project is now a phone-ready web app with two modes:
 
 ## Files to know
 
-- [index.html](C:\Users\lukas\Documents\New project\index.html): app layout
-- [app.js](C:\Users\lukas\Documents\New project\app.js): app logic, local mode, cloud sync, and PWA setup
-- [styles.css](C:\Users\lukas\Documents\New project\styles.css): styling
-- [config.js](C:\Users\lukas\Documents\New project\config.js): your local Supabase keys
-- [config.example.js](C:\Users\lukas\Documents\New project\config.example.js): sample config
-- [supabase.sql](C:\Users\lukas\Documents\New project\supabase.sql): database and storage setup
-- [app.webmanifest](C:\Users\lukas\Documents\New project\app.webmanifest): installable app metadata
-- [service-worker.js](C:\Users\lukas\Documents\New project\service-worker.js): offline cache
+- [index.html](C:\Users\*****\Documents\New project\index.html): app layout
+- [app.js](C:\Users\*****\Documents\New project\app.js): app logic, local mode, cloud sync, and PWA setup
+- [styles.css](C:\Users\*****\Documents\New project\styles.css): styling
+- [config.js](C:\Users\*****\Documents\New project\config.js): your local Supabase keys
+- [config.example.js](C:\Users\*****\Documents\New project\config.example.js): sample config
+- [supabase.sql](C:\Users\*****\Documents\New project\supabase.sql): database and storage setup
+- [app.webmanifest](C:\Users\*****\Documents\New project\app.webmanifest): installable app metadata
+- [service-worker.js](C:\Users\*****\Documents\New project\service-worker.js): offline cache
 
 ## How to access it personally
 
 ### Fastest personal path
 
 1. Create a Supabase project.
-2. In the Supabase SQL editor, run [supabase.sql](C:\Users\lukas\Documents\New project\supabase.sql).
-3. Edit [config.js](C:\Users\lukas\Documents\New project\config.js) using [config.example.js](C:\Users\lukas\Documents\New project\config.example.js) as your template, then paste in your project URL and anon key.
+2. In the Supabase SQL editor, run [supabase.sql](C:\Users\*****\Documents\New project\supabase.sql).
+3. Edit [config.js](C:\Users\*****\Documents\New project\config.js) using [config.example.js](C:\Users\*****\Documents\New project\config.example.js) as your template, then paste in your project URL and anon key.
 4. Publish this folder as a static site.
 5. Open the site on your iPhone.
 6. Enter your email in the app and use the magic link to sign in.
