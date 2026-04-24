@@ -192,6 +192,18 @@ h1 {
   gap: 12px;
 }
 
+.button-google {
+  background: linear-gradient(180deg, #fffefe 0%, #f4eee8 100%);
+  border: 1px solid rgba(120, 88, 61, 0.18);
+  color: #2e241d;
+  box-shadow: 0 12px 24px rgba(77, 47, 23, 0.08);
+}
+
+.button-google:hover,
+.button-google:focus-visible {
+  box-shadow: 0 16px 28px rgba(77, 47, 23, 0.12);
+}
+
 .panel {
   padding: 22px;
 }
