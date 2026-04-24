@@ -21,7 +21,7 @@ const state = {
 };
 
 const cloudConfig = window.APP_CONFIG || {};
-const supabase = createSupabaseClient();
+const supabaseClient = createSupabaseClient();
 
 const tagForm = document.querySelector("#tagForm");
 const tagNameInput = document.querySelector("#tagNameInput");
@@ -76,7 +76,7 @@ async function initializeApp() {
   renderAll();
   registerServiceWorker();
 
-  if (!supabase) {
+  if (!supabaseClient) {
     renderCloudStatus("Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.");
     return;
   }
@@ -86,7 +86,7 @@ async function initializeApp() {
 
   const { data, error } = await supabase.auth.getSession();
   if (error) {
-    renderCloudStatus("Supabase is configured, but the existing session could not be restored.");
+    renderCloudStatus("supabaseClient is configured, but the existing session could not be restored.");
     return;
   }
 
@@ -94,7 +94,7 @@ async function initializeApp() {
     await onSignedIn(data.session.user);
   }
 
-  supabase.auth.onAuthStateChange(async (_event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     if (session?.user) {
       await onSignedIn(session.user);
       return;
@@ -220,7 +220,7 @@ async function handleCreateTag(event) {
   }
 
   if (state.cloud.signedIn) {
-    const { error } = await supabase.from("tags").insert({
+    const { error } = await supabaseClient.from("tags").insert({
       user_id: state.cloud.user.id,
       name: rawName,
       normalized_name: normalizedName,
@@ -251,7 +251,7 @@ async function handleDeleteTag(tagId) {
   }
 
   if (state.cloud.signedIn) {
-    const { error } = await supabase.from("tags").delete().eq("id", tagId).eq("user_id", state.cloud.user.id);
+    const { error } = await supabaseClient.from("tags").delete().eq("id", tagId).eq("user_id", state.cloud.user.id);
     if (error) {
       window.alert(`Cloud tag delete failed: ${error.message}`);
       return;
@@ -292,7 +292,7 @@ async function handleCreateEntry(event) {
     if (state.cloud.signedIn) {
       const imagePath = `${state.cloud.user.id}/${crypto.randomUUID()}.jpg`;
       const imageBlob = dataUrlToBlob(compressedImage);
-      const upload = await supabase.storage.from(SUPABASE_BUCKET).upload(imagePath, imageBlob, {
+      const upload = await supabaseClient.storage.from(SUPABASE_BUCKET).upload(imagePath, imageBlob, {
         contentType: "image/jpeg",
         upsert: false,
       });
@@ -302,7 +302,7 @@ async function handleCreateEntry(event) {
         return;
       }
 
-      const insertEntry = await supabase
+      const insertEntry = await supabaseClient
         .from("entries")
         .insert({
           user_id: state.cloud.user.id,
@@ -324,7 +324,7 @@ async function handleCreateEntry(event) {
           tag_id: tagId,
         }));
 
-        const joinInsert = await supabase.from("entry_tags").insert(joinRows);
+        const joinInsert = await supabaseClient.from("entry_tags").insert(joinRows);
         if (joinInsert.error) {
           window.alert(`Cloud tag assignment failed: ${joinInsert.error.message}`);
           return;
@@ -365,14 +365,14 @@ async function handleDeleteEntry(entryId) {
       return;
     }
 
-    const deleteEntry = await supabase.from("entries").delete().eq("id", entryId).eq("user_id", state.cloud.user.id);
+    const deleteEntry = await supabaseClient.from("entries").delete().eq("id", entryId).eq("user_id", state.cloud.user.id);
     if (deleteEntry.error) {
       window.alert(`Cloud entry delete failed: ${deleteEntry.error.message}`);
       return;
     }
 
     if (entry.imagePath) {
-      await supabase.storage.from(SUPABASE_BUCKET).remove([entry.imagePath]);
+      await supabaseClient.storage.from(SUPABASE_BUCKET).remove([entry.imagePath]);
     }
 
     await refreshCloudData();
@@ -395,7 +395,7 @@ function handleClearFilters() {
 async function handleRequestSignIn(event) {
   event.preventDefault();
 
-  if (!supabase) {
+  if (!supabaseClient) {
     renderCloudStatus("Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.");
     return;
   }
@@ -406,7 +406,7 @@ async function handleRequestSignIn(event) {
   }
 
   const redirectTo = window.location.href.split("#")[0];
-  const { error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabaseClient.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: redirectTo,
@@ -423,11 +423,11 @@ async function handleRequestSignIn(event) {
 }
 
 async function handleSignOut() {
-  if (!supabase) {
+  if (!supabaseClient) {
     return;
   }
 
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabaseClient.auth.signOut();
   if (error) {
     authStatusText.textContent = `Sign-out failed: ${error.message}`;
   }
@@ -457,9 +457,9 @@ async function refreshCloudData() {
   }
 
   const [tagsResult, entriesResult, entryTagsResult] = await Promise.all([
-    supabase.from("tags").select("id, name").eq("user_id", state.cloud.user.id).order("name", { ascending: true }),
-    supabase.from("entries").select("id, title, notes, image_path, created_at").eq("user_id", state.cloud.user.id).order("created_at", { ascending: false }),
-    supabase
+    supabaseClient.from("tags").select("id, name").eq("user_id", state.cloud.user.id).order("name", { ascending: true }),
+    supabaseClient.from("entries").select("id, title, notes, image_path, created_at").eq("user_id", state.cloud.user.id).order("created_at", { ascending: false }),
+    supabaseClient
       .from("entry_tags")
       .select("entry_id, tag_id, entries!inner(user_id)")
       .eq("entries.user_id", state.cloud.user.id),
