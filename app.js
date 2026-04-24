@@ -44,7 +44,7 @@ const entryCardTemplate = document.querySelector("#entryCardTemplate");
 const storageModeLabel = document.querySelector("#storageModeLabel");
 
 const authForm = document.querySelector("#authForm");
-const emailInput = document.querySelector("#emailInput");
+const googleSignInButton = document.querySelector("#googleSignInButton");
 const authStatusText = document.querySelector("#authStatusText");
 const syncStatusText = document.querySelector("#syncStatusText");
 const syncModeBadge = document.querySelector("#syncModeBadge");
@@ -54,7 +54,7 @@ const syncNowButton = document.querySelector("#syncNowButton");
 tagForm.addEventListener("submit", handleCreateTag);
 entryForm.addEventListener("submit", handleCreateEntry);
 clearFiltersButton.addEventListener("click", handleClearFilters);
-authForm.addEventListener("submit", handleRequestSignIn);
+googleSignInButton.addEventListener("click", handleGoogleSignIn);
 signOutButton.addEventListener("click", handleSignOut);
 syncNowButton.addEventListener("click", handleManualSync);
 
@@ -84,9 +84,9 @@ async function initializeApp() {
   state.cloud.enabled = true;
   renderCloudStatus("Cloud sync is configured. Sign in to load your pottery library on any device.");
 
-  const { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabaseClient.auth.getSession();
   if (error) {
-    renderCloudStatus("supabaseClient is configured, but the existing session could not be restored.");
+    renderCloudStatus("Supabase is configured, but the existing session could not be restored.");
     return;
   }
 
@@ -392,34 +392,26 @@ function handleClearFilters() {
   renderAll();
 }
 
-async function handleRequestSignIn(event) {
-  event.preventDefault();
-
+async function handleGoogleSignIn() {
   if (!supabaseClient) {
     renderCloudStatus("Cloud sync is unavailable right now. Check your Supabase connection settings and try again.");
     return;
   }
 
-  const email = emailInput.value.trim();
-  if (!email) {
-    return;
-  }
-
   const redirectTo = window.location.href.split("#")[0];
-  const { error } = await supabaseClient.auth.signInWithOtp({
-    email,
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
     options: {
-      emailRedirectTo: redirectTo,
+      redirectTo,
     },
   });
 
   if (error) {
-    authStatusText.textContent = `Sign-in link failed: ${error.message}`;
+    authStatusText.textContent = `Google sign-in failed: ${error.message}`;
     return;
   }
 
-  authStatusText.textContent = "Check your email on this phone or computer, then open the sign-in link to finish connecting your library.";
-  authForm.reset();
+  authStatusText.textContent = "Opening Google sign-in. Finish authentication there, then you will return here automatically.";
 }
 
 async function handleSignOut() {
@@ -448,7 +440,7 @@ async function onSignedIn(user) {
   state.cloud.syncReady = true;
   await refreshCloudData();
   renderAll();
-  renderCloudStatus(`Signed in as ${user.email}. Your tags and pottery pieces now sync through Supabase.`);
+  renderCloudStatus(`Signed in as ${user.email || "your Google account"}. Your tags and pottery pieces now sync through Supabase.`);
 }
 
 async function refreshCloudData() {
