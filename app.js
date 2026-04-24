@@ -77,7 +77,7 @@ async function initializeApp() {
   registerServiceWorker();
 
   if (!supabaseClient) {
-    renderCloudStatus("Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.");
+    renderCloudStatus("Cloud sync is unavailable right now. Check your Supabase connection settings and try again.");
     return;
   }
 
@@ -107,7 +107,7 @@ async function initializeApp() {
     state.entries = [...state.localCache.entries];
     state.filters = { ...state.localCache.filters };
     renderAll();
-    renderCloudStatus("Signed out. You are back in local mode on this device.");
+    renderCloudStatus("Signed out. Your library is now using local storage on this device.");
   });
 }
 
@@ -396,7 +396,7 @@ async function handleRequestSignIn(event) {
   event.preventDefault();
 
   if (!supabaseClient) {
-    renderCloudStatus("Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.");
+    renderCloudStatus("Cloud sync is unavailable right now. Check your Supabase connection settings and try again.");
     return;
   }
 
@@ -575,7 +575,7 @@ function renderMatchMode() {
 function renderCloudUi() {
   const localMode = !state.cloud.signedIn;
   storageModeLabel.textContent = localMode
-    ? "Everything in this MVP is stored locally in your browser."
+    ? "Your library is currently stored on this device."
     : "Your tags and pottery pieces are syncing through the cloud.";
   syncModeBadge.textContent = localMode ? "Local only" : "Cloud sync on";
   signOutButton.hidden = !state.cloud.signedIn;
