@@ -15,27 +15,27 @@
 <body>
   <div class="app-shell">
     <header class="hero">
-      <div>
-        <p class="eyebrow">Version 1 MVP</p>
+      <div class="hero-copy-block">
+        <p class="eyebrow">Glaze notes, kiln memory, and fired results</p>
         <h1>Pottery Tag Library</h1>
         <p class="hero-copy">
-          Save fired results, choose tags from a master list, and find glaze examples fast without typo chaos.
+          Keep a visual record of your work, organize it with a controlled tag list, and pull up fired examples in seconds.
         </p>
       </div>
       <div class="hero-card">
         <p class="hero-stat-label">Saved pieces</p>
         <p class="hero-stat" id="entryCount">0</p>
-        <p class="hero-subtle" id="storageModeLabel">Everything in this MVP is stored locally in your browser.</p>
+        <p class="hero-subtle" id="storageModeLabel">Your collection lives locally until cloud sync is connected.</p>
       </div>
     </header>
 
     <section class="panel sync-panel">
       <div class="section-heading">
         <div>
-          <p class="section-kicker">Phone Ready</p>
-          <h2>Cloud Sync</h2>
+          <p class="section-kicker">Access Anywhere</p>
+          <h2>Account & Sync</h2>
         </div>
-        <p class="section-copy">Use local mode now, or connect Supabase so your pottery library follows you onto your iPhone.</p>
+        <p class="section-copy">Sign in with email to carry your pottery library between devices and keep it available on your phone.</p>
       </div>
 
       <div class="sync-grid">
@@ -57,7 +57,7 @@
             <button id="signOutButton" type="button" class="button button-secondary" hidden>Sign out</button>
             <button id="syncNowButton" type="button" class="button button-secondary" hidden>Sync now</button>
           </div>
-          <p class="auth-copy" id="authStatusText">Cloud sync is not configured yet. Add your Supabase keys in `config.js` when you are ready.</p>
+          <p class="auth-copy" id="authStatusText">Sign in with email to sync your library between devices.</p>
         </form>
       </div>
     </section>
@@ -66,10 +66,10 @@
       <section class="panel">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">Step 1</p>
-            <h2>Master Tags</h2>
+            <p class="section-kicker">Controlled Tags</p>
+            <h2>Tag Library</h2>
           </div>
-          <p class="section-copy">Create tags once, then select them when you add a pottery photo.</p>
+          <p class="section-copy">Build your master list once, then reuse those tags everywhere to keep names clean and consistent.</p>
         </div>
 
         <form id="tagForm" class="stack">
@@ -88,10 +88,10 @@
       <section class="panel">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">Step 2</p>
+            <p class="section-kicker">Add Work</p>
             <h2>Add Pottery Piece</h2>
           </div>
-          <p class="section-copy">Upload a photo, add notes, and choose matching tags from your master list.</p>
+          <p class="section-copy">Upload a fired result, keep your notes nearby, and assign tags from your master list.</p>
         </div>
 
         <form id="entryForm" class="stack">
@@ -122,10 +122,10 @@
       <section class="panel panel-wide">
         <div class="section-heading">
           <div>
-            <p class="section-kicker">Step 3</p>
+            <p class="section-kicker">Search Collection</p>
             <h2>Find Fired Results</h2>
           </div>
-          <p class="section-copy">Combine include and exclude tags, then choose how strict the include match should be.</p>
+          <p class="section-copy">Combine include and exclude tags, then decide whether a result should match every selected tag or just one of them.</p>
         </div>
 
         <div class="search-grid">
