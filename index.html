@@ -35,7 +35,7 @@
           <p class="section-kicker">Access Anywhere</p>
           <h2>Account & Sync</h2>
         </div>
-        <p class="section-copy">Sign in with email to carry your pottery library between devices and keep it available on your phone.</p>
+        <p class="section-copy">Sign in with Google to carry your pottery library between devices and keep it available on your phone.</p>
       </div>
 
       <div class="sync-grid">
@@ -45,20 +45,17 @@
           <p class="sync-copy" id="syncStatusText">Set up cloud config to sync tags and pottery photos across devices.</p>
         </div>
 
-        <form id="authForm" class="stack auth-form">
-          <label class="field">
-            <span>Email for sign-in link</span>
-            <div class="inline-field">
-              <input id="emailInput" name="email" type="email" placeholder="you@example.com">
-              <button type="submit" class="button">Email me a sign-in link</button>
-            </div>
-          </label>
+        <div id="authForm" class="stack auth-form">
+          <div class="field">
+            <span>Google account</span>
+            <button id="googleSignInButton" type="button" class="button button-google">Sign in with Google</button>
+          </div>
           <div class="auth-actions">
             <button id="signOutButton" type="button" class="button button-secondary" hidden>Sign out</button>
             <button id="syncNowButton" type="button" class="button button-secondary" hidden>Sync now</button>
           </div>
-          <p class="auth-copy" id="authStatusText">Sign in with email to sync your library between devices.</p>
-        </form>
+          <p class="auth-copy" id="authStatusText">Sign in with Google to sync your library between devices.</p>
+        </div>
       </div>
     </section>
 
