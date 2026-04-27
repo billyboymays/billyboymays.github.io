@@ -1,4 +1,5 @@
 const STORAGE_KEY = "pottery-tag-library-v2";
+const UI_STORAGE_KEY = "pottery-tag-library-ui-v1";
 const MAX_IMAGE_WIDTH = 1600;
 const IMAGE_QUALITY = 0.82;
 const SUPABASE_BUCKET = "pottery-images";
@@ -12,6 +13,9 @@ const state = {
     matchMode: "all",
   },
   localCache: loadLocalCache(),
+  ui: loadUiState(),
+  formMode: "create",
+  editingEntryId: null,
   cloud: {
     enabled: false,
     signedIn: false,
@@ -32,6 +36,9 @@ const titleInput = document.querySelector("#titleInput");
 const imageInput = document.querySelector("#imageInput");
 const notesInput = document.querySelector("#notesInput");
 const entryTagPicker = document.querySelector("#entryTagPicker");
+const imageDraftStatus = document.querySelector("#imageDraftStatus");
+const entrySubmitButton = document.querySelector("#entrySubmitButton");
+const cancelEditButton = document.querySelector("#cancelEditButton");
 
 const includeTagPicker = document.querySelector("#includeTagPicker");
 const excludeTagPicker = document.querySelector("#excludeTagPicker");
@@ -43,7 +50,6 @@ const entryCount = document.querySelector("#entryCount");
 const entryCardTemplate = document.querySelector("#entryCardTemplate");
 const storageModeLabel = document.querySelector("#storageModeLabel");
 
-const authForm = document.querySelector("#authForm");
 const googleSignInButton = document.querySelector("#googleSignInButton");
 const authStatusText = document.querySelector("#authStatusText");
 const syncStatusText = document.querySelector("#syncStatusText");
@@ -51,18 +57,36 @@ const syncModeBadge = document.querySelector("#syncModeBadge");
 const signOutButton = document.querySelector("#signOutButton");
 const syncNowButton = document.querySelector("#syncNowButton");
 
+const collapsiblePanels = {
+  masterTags: document.querySelector("#masterTagsPanel"),
+  entryTags: document.querySelector("#entryTagsPanel"),
+  includeTags: document.querySelector("#includeTagsPanel"),
+  excludeTags: document.querySelector("#excludeTagsPanel"),
+};
+
 tagForm.addEventListener("submit", handleCreateTag);
-entryForm.addEventListener("submit", handleCreateEntry);
+entryForm.addEventListener("submit", handleEntrySubmit);
+titleInput.addEventListener("input", persistEntryDraftFromForm);
+notesInput.addEventListener("input", persistEntryDraftFromForm);
+imageInput.addEventListener("change", handleImageSelection);
 clearFiltersButton.addEventListener("click", handleClearFilters);
 googleSignInButton.addEventListener("click", handleGoogleSignIn);
 signOutButton.addEventListener("click", handleSignOut);
 syncNowButton.addEventListener("click", handleManualSync);
+cancelEditButton.addEventListener("click", handleCancelEdit);
 
 document.querySelectorAll('input[name="matchMode"]').forEach((input) => {
   input.addEventListener("change", () => {
     state.filters.matchMode = input.value;
     persistFilters();
     renderResults();
+  });
+});
+
+document.querySelectorAll(".collapse-toggle").forEach((button) => {
+  button.addEventListener("click", () => {
+    const section = button.dataset.section;
+    toggleSection(section);
   });
 });
 
@@ -73,6 +97,7 @@ async function initializeApp() {
   state.entries = [...state.localCache.entries];
   state.filters = { ...state.localCache.filters };
 
+  hydrateEntryFormFromDraft();
   renderAll();
   registerServiceWorker();
 
@@ -106,6 +131,9 @@ async function initializeApp() {
     state.tags = [...state.localCache.tags];
     state.entries = [...state.localCache.entries];
     state.filters = { ...state.localCache.filters };
+    state.formMode = "create";
+    state.editingEntryId = null;
+    hydrateEntryFormFromDraft();
     renderAll();
     renderCloudStatus("Signed out. Your library is now using local storage on this device.");
   });
@@ -181,6 +209,45 @@ function loadLocalCache() {
   }
 }
 
+function loadUiState() {
+  const stored = window.localStorage.getItem(UI_STORAGE_KEY);
+  const defaults = {
+    collapsedSections: {
+      masterTags: false,
+      entryTags: false,
+      includeTags: false,
+      excludeTags: false,
+    },
+    entryDraft: {
+      title: "",
+      notes: "",
+      tagIds: [],
+      imageDataUrl: "",
+      imageName: "",
+    },
+  };
+
+  if (!stored) {
+    return defaults;
+  }
+
+  try {
+    const parsed = JSON.parse(stored);
+    return {
+      collapsedSections: {
+        ...defaults.collapsedSections,
+        ...(parsed.collapsedSections || {}),
+      },
+      entryDraft: {
+        ...defaults.entryDraft,
+        ...(parsed.entryDraft || {}),
+      },
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 function persistLocalCache() {
   state.localCache = {
     tags: [...state.tags],
@@ -189,6 +256,10 @@ function persistLocalCache() {
   };
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state.localCache));
+}
+
+function persistUiState() {
+  window.localStorage.setItem(UI_STORAGE_KEY, JSON.stringify(state.ui));
 }
 
 function persistFilters() {
@@ -259,27 +330,46 @@ async function handleDeleteTag(tagId) {
 
     state.filters.includeTagIds = state.filters.includeTagIds.filter((id) => id !== tagId);
     state.filters.excludeTagIds = state.filters.excludeTagIds.filter((id) => id !== tagId);
+    if (state.ui.entryDraft.tagIds.includes(tagId)) {
+      state.ui.entryDraft.tagIds = state.ui.entryDraft.tagIds.filter((id) => id !== tagId);
+      persistUiState();
+    }
     await refreshCloudData();
   } else {
     state.tags = state.tags.filter((tag) => tag.id !== tagId);
     state.filters.includeTagIds = state.filters.includeTagIds.filter((id) => id !== tagId);
     state.filters.excludeTagIds = state.filters.excludeTagIds.filter((id) => id !== tagId);
+    state.ui.entryDraft.tagIds = state.ui.entryDraft.tagIds.filter((id) => id !== tagId);
     persistLocalCache();
+    persistUiState();
+  }
+
+  if (state.formMode === "create") {
+    syncDraftTagsWithAvailableTags();
   }
 
   renderAll();
 }
 
-async function handleCreateEntry(event) {
+async function handleEntrySubmit(event) {
   event.preventDefault();
 
+  if (state.formMode === "edit") {
+    await handleUpdateEntry();
+    return;
+  }
+
+  await handleCreateEntry();
+}
+
+async function handleCreateEntry() {
   if (!state.tags.length) {
     window.alert("Add at least one master tag before saving a pottery piece.");
     return;
   }
 
-  const imageFile = imageInput.files?.[0];
-  if (!imageFile) {
+  const draftImage = await ensureDraftImageReady();
+  if (!draftImage) {
     window.alert("Please choose a photo first.");
     return;
   }
@@ -287,11 +377,9 @@ async function handleCreateEntry(event) {
   const selectedTagIds = getCheckedValues(entryTagPicker);
 
   try {
-    const compressedImage = await compressImage(imageFile);
-
     if (state.cloud.signedIn) {
       const imagePath = `${state.cloud.user.id}/${crypto.randomUUID()}.jpg`;
-      const imageBlob = dataUrlToBlob(compressedImage);
+      const imageBlob = dataUrlToBlob(draftImage);
       const upload = await supabaseClient.storage.from(SUPABASE_BUCKET).upload(imagePath, imageBlob, {
         contentType: "image/jpeg",
         upsert: false,
@@ -338,7 +426,7 @@ async function handleCreateEntry(event) {
         title: titleInput.value.trim() || "Untitled piece",
         notes: notesInput.value.trim(),
         tagIds: selectedTagIds,
-        imageUrl: compressedImage,
+        imageUrl: draftImage,
         imagePath: null,
         createdAt: new Date().toISOString(),
       });
@@ -346,11 +434,80 @@ async function handleCreateEntry(event) {
       persistLocalCache();
     }
 
+    resetEntryDraft();
     entryForm.reset();
     renderAll();
   } catch (error) {
     window.alert(error.message || "The image could not be processed.");
   }
+}
+
+async function handleUpdateEntry() {
+  const entryId = state.editingEntryId;
+  const entry = state.entries.find((item) => item.id === entryId);
+
+  if (!entry) {
+    window.alert("That pottery piece could not be found.");
+    cancelEditMode();
+    return;
+  }
+
+  const updatedTitle = titleInput.value.trim() || "Untitled piece";
+  const updatedNotes = notesInput.value.trim();
+  const updatedTagIds = getCheckedValues(entryTagPicker);
+
+  if (state.cloud.signedIn) {
+    const entryUpdate = await supabaseClient
+      .from("entries")
+      .update({
+        title: updatedTitle,
+        notes: updatedNotes,
+      })
+      .eq("id", entryId)
+      .eq("user_id", state.cloud.user.id);
+
+    if (entryUpdate.error) {
+      window.alert(`Cloud entry update failed: ${entryUpdate.error.message}`);
+      return;
+    }
+
+    const removeTags = await supabaseClient.from("entry_tags").delete().eq("entry_id", entryId);
+    if (removeTags.error) {
+      window.alert(`Cloud tag update failed: ${removeTags.error.message}`);
+      return;
+    }
+
+    if (updatedTagIds.length) {
+      const joinRows = updatedTagIds.map((tagId) => ({
+        entry_id: entryId,
+        tag_id: tagId,
+      }));
+
+      const addTags = await supabaseClient.from("entry_tags").insert(joinRows);
+      if (addTags.error) {
+        window.alert(`Cloud tag update failed: ${addTags.error.message}`);
+        return;
+      }
+    }
+
+    await refreshCloudData();
+  } else {
+    state.entries = state.entries.map((item) =>
+      item.id === entryId
+        ? {
+            ...item,
+            title: updatedTitle,
+            notes: updatedNotes,
+            tagIds: updatedTagIds,
+          }
+        : item
+    );
+
+    persistLocalCache();
+  }
+
+  cancelEditMode();
+  renderAll();
 }
 
 async function handleDeleteEntry(entryId) {
@@ -379,6 +536,10 @@ async function handleDeleteEntry(entryId) {
   } else {
     state.entries = state.entries.filter((entry) => entry.id !== entryId);
     persistLocalCache();
+  }
+
+  if (state.editingEntryId === entryId) {
+    cancelEditMode();
   }
 
   renderAll();
@@ -480,6 +641,7 @@ async function refreshCloudData() {
 
   state.filters.includeTagIds = state.filters.includeTagIds.filter((tagId) => state.tags.some((tag) => tag.id === tagId));
   state.filters.excludeTagIds = state.filters.excludeTagIds.filter((tagId) => state.tags.some((tag) => tag.id === tagId));
+  syncDraftTagsWithAvailableTags();
 }
 
 function buildStoragePublicUrl(imagePath) {
@@ -492,12 +654,14 @@ function buildStoragePublicUrl(imagePath) {
 
 function renderAll() {
   renderMasterTags();
-  renderTagPicker(entryTagPicker, [], "entry-tags");
+  renderTagPicker(entryTagPicker, getEntryFormSelectedTags(), "entry-tags");
   renderTagPicker(includeTagPicker, state.filters.includeTagIds, "include-tags");
   renderTagPicker(excludeTagPicker, state.filters.excludeTagIds, "exclude-tags");
   renderMatchMode();
   renderResults();
   renderCloudUi();
+  renderCollapseState();
+  renderEntryFormState();
   entryCount.textContent = String(state.entries.length);
 }
 
@@ -550,6 +714,15 @@ function renderTagPicker(container, selectedIds, groupName) {
       });
     }
 
+    if (container === entryTagPicker) {
+      input.addEventListener("change", () => {
+        if (state.formMode === "create") {
+          state.ui.entryDraft.tagIds = getCheckedValues(entryTagPicker);
+          persistUiState();
+        }
+      });
+    }
+
     const text = document.createElement("span");
     text.textContent = tag.name;
 
@@ -570,8 +743,31 @@ function renderCloudUi() {
     ? "Your library is currently stored on this device."
     : "Your tags and pottery pieces are syncing through the cloud.";
   syncModeBadge.textContent = localMode ? "Local only" : "Cloud sync on";
+  googleSignInButton.hidden = !localMode;
   signOutButton.hidden = !state.cloud.signedIn;
   syncNowButton.hidden = !state.cloud.signedIn;
+}
+
+function renderEntryFormState() {
+  const editing = state.formMode === "edit";
+  entrySubmitButton.textContent = editing ? "Save changes" : "Save pottery piece";
+  cancelEditButton.hidden = !editing;
+  imageInput.disabled = editing;
+  imageInput.required = !editing && !state.ui.entryDraft.imageDataUrl;
+  imageDraftStatus.textContent = getImageStatusText();
+}
+
+function renderCollapseState() {
+  document.querySelectorAll(".collapse-toggle").forEach((button) => {
+    const section = button.dataset.section;
+    const collapsed = !!state.ui.collapsedSections[section];
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.classList.toggle("is-collapsed", collapsed);
+    const panel = collapsiblePanels[section];
+    if (panel) {
+      panel.hidden = collapsed;
+    }
+  });
 }
 
 function syncFiltersFromDom() {
@@ -597,6 +793,7 @@ function renderResults() {
     const notes = card.querySelector(".entry-notes");
     const tags = card.querySelector(".entry-tags");
     const deleteButton = card.querySelector(".delete-entry");
+    const editButton = card.querySelector(".edit-entry");
 
     image.src = entry.imageUrl;
     image.alt = entry.title;
@@ -604,6 +801,7 @@ function renderResults() {
     date.textContent = new Date(entry.createdAt).toLocaleDateString();
     notes.textContent = entry.notes || "No notes added.";
     deleteButton.addEventListener("click", () => handleDeleteEntry(entry.id));
+    editButton.addEventListener("click", () => startEditEntry(entry.id));
 
     const entryTags = state.tags.filter((tag) => entry.tagIds.includes(tag.id));
     entryTags.forEach((tag) => {
@@ -699,4 +897,141 @@ function registerServiceWorker() {
       renderCloudStatus("The app loaded, but offline install support could not be enabled in this browser.");
     });
   });
+}
+
+function toggleSection(section) {
+  state.ui.collapsedSections[section] = !state.ui.collapsedSections[section];
+  persistUiState();
+  renderCollapseState();
+}
+
+function persistEntryDraftFromForm() {
+  if (state.formMode !== "create") {
+    return;
+  }
+
+  state.ui.entryDraft.title = titleInput.value;
+  state.ui.entryDraft.notes = notesInput.value;
+  state.ui.entryDraft.tagIds = getCheckedValues(entryTagPicker);
+  persistUiState();
+  renderEntryFormState();
+}
+
+async function handleImageSelection() {
+  if (state.formMode !== "create") {
+    imageInput.value = "";
+    imageDraftStatus.textContent = "Images stay fixed while editing. Create a new piece if you need a different photo.";
+    return;
+  }
+
+  const imageFile = imageInput.files?.[0];
+  if (!imageFile) {
+    return;
+  }
+
+  try {
+    const compressedImage = await compressImage(imageFile);
+    state.ui.entryDraft.imageDataUrl = compressedImage;
+    state.ui.entryDraft.imageName = imageFile.name || "Selected photo";
+    persistUiState();
+    renderEntryFormState();
+  } catch (error) {
+    window.alert(error.message || "The image could not be processed.");
+  }
+}
+
+async function ensureDraftImageReady() {
+  if (state.ui.entryDraft.imageDataUrl) {
+    return state.ui.entryDraft.imageDataUrl;
+  }
+
+  const imageFile = imageInput.files?.[0];
+  if (!imageFile) {
+    return "";
+  }
+
+  const compressedImage = await compressImage(imageFile);
+  state.ui.entryDraft.imageDataUrl = compressedImage;
+  state.ui.entryDraft.imageName = imageFile.name || "Selected photo";
+  persistUiState();
+  renderEntryFormState();
+  return compressedImage;
+}
+
+function resetEntryDraft() {
+  state.ui.entryDraft = {
+    title: "",
+    notes: "",
+    tagIds: [],
+    imageDataUrl: "",
+    imageName: "",
+  };
+  persistUiState();
+  state.formMode = "create";
+  state.editingEntryId = null;
+  hydrateEntryFormFromDraft();
+}
+
+function hydrateEntryFormFromDraft() {
+  if (state.formMode === "edit") {
+    return;
+  }
+
+  titleInput.value = state.ui.entryDraft.title || "";
+  notesInput.value = state.ui.entryDraft.notes || "";
+  imageInput.value = "";
+}
+
+function getEntryFormSelectedTags() {
+  if (state.formMode === "edit") {
+    const entry = state.entries.find((item) => item.id === state.editingEntryId);
+    return entry ? entry.tagIds : [];
+  }
+
+  return state.ui.entryDraft.tagIds;
+}
+
+function startEditEntry(entryId) {
+  const entry = state.entries.find((item) => item.id === entryId);
+  if (!entry) {
+    return;
+  }
+
+  state.formMode = "edit";
+  state.editingEntryId = entryId;
+  titleInput.value = entry.title;
+  notesInput.value = entry.notes;
+  imageInput.value = "";
+  imageDraftStatus.textContent = "Editing keeps the current image. Create a new piece if you want to replace the photo.";
+  renderAll();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function handleCancelEdit() {
+  cancelEditMode();
+  renderAll();
+}
+
+function cancelEditMode() {
+  state.formMode = "create";
+  state.editingEntryId = null;
+  hydrateEntryFormFromDraft();
+}
+
+function getImageStatusText() {
+  if (state.formMode === "edit") {
+    return "Editing keeps the current image. Create a new piece if you want to replace the photo.";
+  }
+
+  if (state.ui.entryDraft.imageDataUrl) {
+    const imageName = state.ui.entryDraft.imageName || "Selected photo";
+    return `${imageName} is attached and ready to save, even if you leave the app and come back.`;
+  }
+
+  return "Choose a photo to attach it to this piece.";
+}
+
+function syncDraftTagsWithAvailableTags() {
+  state.ui.entryDraft.tagIds = state.ui.entryDraft.tagIds.filter((tagId) => state.tags.some((tag) => tag.id === tagId));
+  persistUiState();
 }
