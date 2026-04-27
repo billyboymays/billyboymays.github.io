@@ -79,7 +79,15 @@
           </label>
         </form>
 
-        <div id="tagList" class="tag-cloud empty-state-inline"></div>
+        <div class="collapsible-block">
+          <button type="button" class="collapse-toggle" data-section="masterTags" aria-expanded="true">
+            <span>Browse master tags</span>
+            <span class="collapse-arrow" aria-hidden="true">▾</span>
+          </button>
+          <div id="masterTagsPanel" class="collapse-panel">
+            <div id="tagList" class="tag-cloud empty-state-inline"></div>
+          </div>
+        </div>
       </section>
 
       <section class="panel">
@@ -99,7 +107,8 @@
 
           <label class="field">
             <span>Photo</span>
-            <input id="imageInput" name="image" type="file" accept="image/*" capture="environment" required>
+            <input id="imageInput" name="image" type="file" accept="image/*" required>
+            <p class="field-support">Choose an image from your photo library or take a new photo.</p>
           </label>
 
           <label class="field">
@@ -107,12 +116,25 @@
             <textarea id="notesInput" name="notes" rows="4" maxlength="500" placeholder="Glaze combo, clay body, kiln notes, firing atmosphere..."></textarea>
           </label>
 
-          <fieldset class="field">
-            <legend>Select tags</legend>
-            <div id="entryTagPicker" class="tag-picker empty-state-inline"></div>
-          </fieldset>
+          <label class="field">
+            <span>Image status</span>
+            <p id="imageDraftStatus" class="field-support">Choose a photo to attach it to this piece.</p>
+          </label>
 
-          <button type="submit" class="button button-strong">Save pottery piece</button>
+          <div class="collapsible-block">
+            <button type="button" class="collapse-toggle" data-section="entryTags" aria-expanded="true">
+              <span>Select tags</span>
+              <span class="collapse-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div id="entryTagsPanel" class="collapse-panel">
+              <div id="entryTagPicker" class="tag-picker empty-state-inline"></div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button id="entrySubmitButton" type="submit" class="button button-strong">Save pottery piece</button>
+            <button id="cancelEditButton" type="button" class="button button-secondary" hidden>Cancel edit</button>
+          </div>
         </form>
       </section>
 
@@ -126,15 +148,25 @@
         </div>
 
         <div class="search-grid">
-          <fieldset class="field">
-            <legend>Include tags</legend>
-            <div id="includeTagPicker" class="tag-picker empty-state-inline"></div>
-          </fieldset>
+          <div class="collapsible-block">
+            <button type="button" class="collapse-toggle" data-section="includeTags" aria-expanded="true">
+              <span>Include tags</span>
+              <span class="collapse-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div id="includeTagsPanel" class="collapse-panel">
+              <div id="includeTagPicker" class="tag-picker empty-state-inline"></div>
+            </div>
+          </div>
 
-          <fieldset class="field">
-            <legend>Exclude tags</legend>
-            <div id="excludeTagPicker" class="tag-picker empty-state-inline"></div>
-          </fieldset>
+          <div class="collapsible-block">
+            <button type="button" class="collapse-toggle" data-section="excludeTags" aria-expanded="true">
+              <span>Exclude tags</span>
+              <span class="collapse-arrow" aria-hidden="true">▾</span>
+            </button>
+            <div id="excludeTagsPanel" class="collapse-panel">
+              <div id="excludeTagPicker" class="tag-picker empty-state-inline"></div>
+            </div>
+          </div>
         </div>
 
         <div class="search-controls">
@@ -165,7 +197,10 @@
       <div class="entry-content">
         <div class="entry-topline">
           <h4 class="entry-title"></h4>
-          <button type="button" class="text-button delete-entry">Delete</button>
+          <div class="entry-actions">
+            <button type="button" class="text-button edit-entry">Edit</button>
+            <button type="button" class="text-button delete-entry">Delete</button>
+          </div>
         </div>
         <p class="entry-date"></p>
         <p class="entry-notes"></p>
