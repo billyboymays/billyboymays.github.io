@@ -242,6 +242,11 @@ h1 {
   font-weight: 700;
 }
 
+.field-support {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
 input[type="text"],
 input[type="email"],
 input[type="file"],
@@ -262,6 +267,14 @@ textarea {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+
+.form-actions,
+.entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
 
 .button,
@@ -316,6 +329,43 @@ textarea:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.collapsible-block {
+  display: grid;
+  gap: 12px;
+}
+
+.collapse-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(120, 88, 61, 0.18);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #fffaf4 0%, #f7ecdf 100%);
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.collapse-arrow {
+  font-size: 1.1rem;
+  transition: transform 160ms ease;
+}
+
+.collapse-toggle.is-collapsed .collapse-arrow {
+  transform: rotate(-90deg);
+}
+
+.collapse-panel[hidden] {
+  display: none;
+}
+
+.collapse-panel {
+  display: block;
 }
 
 .tag-pill {
@@ -450,6 +500,7 @@ textarea:focus-visible {
   color: var(--accent-strong);
   cursor: pointer;
   font-weight: 700;
+  padding: 0;
 }
 
 .empty-state-inline,
